@@ -11,23 +11,31 @@
 #include <sys/shm.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 using namespace std;
+void* shm_buffer;
+int shmid;
 
+
+void comms_init()	{
+	/*ftok to generate unique key*/
+        key_t key = ftok("shmfile", 65);
+        /*shmget returns an identifier in shmid*/
+        shmid = shmget(key, 1024, 0666|IPC_CREAT);
+	 /*shmat to attach shared memory*/
+        shm_buffer = shmat(shmid, (void*)0,0);
+	
+}
 /*put char buffer into the shared memory*/
 void put(char* dest, char* source, size_t nelems, int pe){
 	
-	/*ftok to generate unique key*/
-	key_t key = ftok("shmfile", 65);
+	/*Copy the source into shmem buffer*/
+	 memcpy(shm_buffer,  (void *)source,  sizeof(source));
 
-	/*shmget returns an identifier in shmid*/
-	int shmid = shmget(key, 1024, 0666|IPC_CREAT);
-
-	/*shmat to attach shared memory*/
-	dest = (char*) shmat(shmid, (void*)0,0);
-	
-	for (int i = 0; i < nelems; i++)
-                dest[i] = source[i];
+	/*Copy source into dest*/
+	memcpy((void*)dest,  (void*)source,  nelems);
+		
 
 	printf("Data written in memory internally: %s\n", dest);
 }
@@ -36,23 +44,20 @@ void put(char* dest, char* source, size_t nelems, int pe){
 /*fetch char buffer from the shared memory*/
 void get(char *dest, char* source, size_t nelems, int pe){
 
-        /*ftok to generate unique key*/
-        key_t key = ftok("shmfile", 65);
+        /*copy shmbuffer into source*/
 
-        /*shmget returns an identifier in shmid*/
-        int shmid = shmget(key, 1024, 0666|IPC_CREAT);
+	memcpy( (void *)source,  shm_buffer,  sizeof(nelems));
+	
+	/*copy source into dest*/
+	memcpy((void*)dest, (void*) source,  nelems);
+	
+	printf("Data read from memory internally: %s\n", dest);
+}
 
-        /*shmat to attach shared memory*/
-        source = (char*)shmat(shmid, (void*)0,0); 
-
-	dest = source;
-	int i = 0;
-	for (int i = 0; i < nelems; i++)
-		dest[i] = source[i];	
-	 printf("Data read from memory internally: %s\n", dest);
+void finalize()	{
 
         /*detach from shared memory*/
-          shmdt(source);
+          shmdt(shm_buffer);
 
 	/*destroy the shared memory*/
 	shmctl(shmid, IPC_RMID, NULL);

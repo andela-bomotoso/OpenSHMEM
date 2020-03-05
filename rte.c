@@ -15,24 +15,23 @@ using namespace std;
 /*initialize openshmem*/
 void init(){
 	
-	MPI_Init(&argc, &argv);
+	MPI_Init(NULL, NULL);
 }
 
-void my_pe()	{
-
-
-}
+/*get PE number*/
 
 int my_pe(){
 	return shmem_my_pe();
 }
 
+/*get the number of PEs*/
 int n_pes()	{
 	return shmem_n_pes();
 }
 
+/*clean up all resources*/
 void finalize(){
-	shemem_finalize();
+	shmem_finalize();
 }
 
 

@@ -6,7 +6,6 @@
  * *	Date:			3rd March 2020
  * ************************************************************************************/
 
-/*#include <iostream>*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>

@@ -12,15 +12,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+//#include <rte.h>
 //using namespace std;
 void* shm_buffer;
 int shmid;
 
 
 void comms_init()	{
+
+	rte_init();
+        int pe = rte_my_pe();
+        int npes = rte_n_pes();
 	/*ftok to generate unique key*/
-        key_t key = ftok("shmfile", 65);
+        key_t key = ftok("shmfile",pe);
         /*shmget returns an identifier in shmid*/
         shmid = shmget(key, 1024, 0666|IPC_CREAT);
 	 /*shmat to attach shared memory*/

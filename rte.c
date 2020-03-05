@@ -6,32 +6,37 @@
  * *	Date:			3rd March 2020
  * ************************************************************************************/
 
-#include <iostream>
+/*#include <iostream>*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>
-using namespace std;
+//using namespace std;
 
 /*initialize openshmem*/
-void init(){
+void rte_init(){
 	
 	MPI_Init(NULL, NULL);
 }
 
 /*get PE number*/
 
-int my_pe(){
-	return shmem_my_pe();
+int rte_my_pe(){
+	int npes;
+	MPI_Comm_size(MPI_COMM_WORLD, &npes);
+	return npes;
 }
 
 /*get the number of PEs*/
-int n_pes()	{
-	return shmem_n_pes();
+int rte_n_pes()	{
+	int me;
+	MPI_Comm_rank(MPI_COMM_WORLD, &me); 
+	return me;
 }
 
 /*clean up all resources*/
-void finalize(){
-	shmem_finalize();
+void rte_finalize(){
+	MPI_Finalize();
+
 }
 
 

@@ -21,16 +21,16 @@ void rte_init(){
 /*get PE number*/
 
 int rte_my_pe(){
-	int npes;
-	MPI_Comm_size(MPI_COMM_WORLD, &npes);
-	return npes;
+	int me;
+	MPI_Comm_rank(MPI_COMM_WORLD, &me);
+	return me;
 }
 
 /*get the number of PEs*/
 int rte_n_pes()	{
-	int me;
-	MPI_Comm_rank(MPI_COMM_WORLD, &me); 
-	return me;
+	int npes;
+	MPI_Comm_size(MPI_COMM_WORLD, &npes); 
+	return npes;
 }
 
 /*clean up all resources*/

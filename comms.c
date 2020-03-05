@@ -6,14 +6,14 @@
  * *	Date:			3rd March 2020
  * ************************************************************************************/
 
-#include <iostream>
+//#include <iostream>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-using namespace std;
+//using namespace std;
 void* shm_buffer;
 int shmid;
 

@@ -14,7 +14,7 @@
 #include <string.h>
 //#include <rte.h>
 //using namespace std;
-void* shm_buffer;
+void** shm_buffer;
 int shmid;
 
 
@@ -28,15 +28,18 @@ void comms_init()	{
         /*shmget returns an identifier in shmid*/
         shmid = shmget(key, 1024, 0666|IPC_CREAT);
 	 /*shmat to attach shared memory*/
-        shm_buffer = shmat(shmid, (void*)0,0);
+        shm_buffer = shmat(shmid, (void**)0,0);
 	
 }
 /*put char buffer into the shared memory*/
 void comms_put(char* dest, char* source, size_t nelems, int pe){
-	
+         printf("Hi1\n");	
+	int offset = (size_t)dest - (size_t)shm_buffer[pe];
+	printf("%d\n", offset);
+	 printf("Hi2\n");
 	/*Copy the source into shmem buffer*/
-	 memcpy(shm_buffer,  (void *)source,  sizeof(source));
-
+	 memcpy(shm_buffer[pe],   (void*)source,  sizeof(source));
+         printf("Hi3\n");
 	/*Copy source into dest*/
 	memcpy((void*)dest, (void*)source,  nelems);
 		
@@ -46,9 +49,9 @@ void comms_put(char* dest, char* source, size_t nelems, int pe){
 
 /*fetch char buffer from the shared memory*/
 void comms_get(char* dest, char* source, size_t nelems, int pe){
-	
+	int offset = (size_t)source - (size_t)shm_buffer[pe];
 	/*copy source into dest*/
-	memcpy((void*)dest,  (void*)source,  nelems);
+	memcpy((void*)dest,  (void*)source+offset,  nelems);
 	
 	printf("Data read from memory internally: %s\n", dest);
 }

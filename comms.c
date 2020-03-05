@@ -28,33 +28,28 @@ void comms_init()	{
 	
 }
 /*put char buffer into the shared memory*/
-void put(char* dest, char* source, size_t nelems, int pe){
+void comms_put(char* dest, char* source, size_t nelems, int pe){
 	
 	/*Copy the source into shmem buffer*/
 	 memcpy(shm_buffer,  (void *)source,  sizeof(source));
 
 	/*Copy source into dest*/
-	memcpy((void*)dest,  (void*)source,  nelems);
+	memcpy((void*)dest, (void*)source,  nelems);
 		
-
 	printf("Data written in memory internally: %s\n", dest);
 }
 
 
 /*fetch char buffer from the shared memory*/
-void get(char *dest, char* source, size_t nelems, int pe){
-
-        /*copy shmbuffer into source*/
-
-	memcpy( (void *)source,  shm_buffer,  sizeof(nelems));
+void comms_get(char* dest, char* source, size_t nelems, int pe){
 	
 	/*copy source into dest*/
-	memcpy((void*)dest, (void*) source,  nelems);
+	memcpy((void*)dest,  (void*)source,  nelems);
 	
 	printf("Data read from memory internally: %s\n", dest);
 }
 
-void finalize()	{
+void comms_finalize()	{
 
         /*detach from shared memory*/
           shmdt(shm_buffer);

@@ -12,36 +12,32 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <rte.h>
-//using namespace std;
+
 void** shm_buffer;
+void* buffer_head;
 int shmid;
 
-
+void* mybuffer;
 void comms_init()	{
 
 	rte_init();
         int pe = rte_my_pe();
         int npes = rte_n_pes();
+	shm_buffer = malloc(npes*sizeof(void*));
 	/*ftok to generate unique key*/
         key_t key = ftok("shmfile",pe);
         /*shmget returns an identifier in shmid*/
         shmid = shmget(key, 1024, 0666|IPC_CREAT);
 	 /*shmat to attach shared memory*/
-        shm_buffer = shmat(shmid, (void**)0,0);
-	
+        shm_buffer[pe] = mybuffer = shmat(shmid, (void**)0,0);
+	buffer_head = mybuffer;
 }
 /*put char buffer into the shared memory*/
-void comms_put(char* dest, char* source, size_t nelems, int pe){
-         printf("Hi1\n");	
-	int offset = (size_t)dest - (size_t)shm_buffer[pe];
-	printf("%d\n", offset);
-	 printf("Hi2\n");
+void comms_put(char* dest, char* source, size_t nelems, int pe){	
+	int offset = (size_t)dest - (size_t)mybuffer;
+
 	/*Copy the source into shmem buffer*/
-	 memcpy(shm_buffer[pe],   (void*)source,  sizeof(source));
-         printf("Hi3\n");
-	/*Copy source into dest*/
-	memcpy((void*)dest, (void*)source,  nelems);
+	memcpy(shm_buffer[pe]+offset,   (void*)source,  sizeof(char)*nelems);
 		
 	printf("Data written in memory internally: %s\n", dest);
 }
@@ -49,11 +45,21 @@ void comms_put(char* dest, char* source, size_t nelems, int pe){
 
 /*fetch char buffer from the shared memory*/
 void comms_get(char* dest, char* source, size_t nelems, int pe){
-	int offset = (size_t)source - (size_t)shm_buffer[pe];
-	/*copy source into dest*/
-	memcpy((void*)dest,  (void*)source+offset,  nelems);
 	
-	printf("Data read from memory internally: %s\n", dest);
+	int offset = (size_t)source - (size_t)mybuffer;
+	
+	/*copy source into dest*/
+	memcpy((void*)dest,  (void*)shm_buffer[pe]+offset, sizeof(char)*nelems);
+	
+        printf("Data read from memory internally: %s\n", dest);
+}
+
+void* shmem_malloc(size_t bytes){
+	void* addr = buffer_head;
+	buffer_head += bytes;
+	return addr;
+
+
 }
 
 void comms_finalize()	{

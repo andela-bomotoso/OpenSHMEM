@@ -54,12 +54,10 @@ void comms_get(char* dest, char* source, size_t nelems, int pe){
         printf("Data read from memory internally: %s\n", dest);
 }
 
-void* shmem_malloc(size_t bytes){
+void* comms_malloc(size_t bytes){
 	void* addr = buffer_head;
 	buffer_head += bytes;
 	return addr;
-
-
 }
 
 void comms_finalize()	{

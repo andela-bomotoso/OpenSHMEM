@@ -35,7 +35,6 @@ int rte_n_pes()	{
 /*clean up all resources*/
 void rte_finalize(){
 	MPI_Finalize();
-
 }
 
 

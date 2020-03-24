@@ -42,6 +42,13 @@ void comms_put(char* dest, char* source, size_t nelems, int pe){
 	printf("Data written in memory internally: %s\n", dest);
 }
 
+/*put int buffer into shared memory*/
+void comms_int_put(int* dest, int* source, size_t nelems, int pe){
+        int offset = (size_t)dest - (size_t)mybuffer;
+
+        /*Copy the source into shmem buffer*/
+        memcpy(shm_buffer[pe]+offset,   (void*)source,  sizeof(char)*nelems);
+}
 
 /*fetch char buffer from the shared memory*/
 void comms_get(char* dest, char* source, size_t nelems, int pe){
@@ -52,6 +59,15 @@ void comms_get(char* dest, char* source, size_t nelems, int pe){
 	memcpy((void*)dest,  (void*)shm_buffer[pe]+offset, sizeof(char)*nelems);
 	
         printf("Data read from memory internally: %s\n", dest);
+}
+
+/*fetch char buffer from the shared memory*/
+void comms_int_get(int* dest, int* source, size_t nelems, int pe){
+
+        int offset = (size_t)source - (size_t)mybuffer;
+
+        /*copy source into dest*/
+        memcpy((void*)dest,  (void*)shm_buffer[pe]+offset, sizeof(char)*nelems);
 }
 
 void* comms_malloc(size_t bytes){

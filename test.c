@@ -15,7 +15,7 @@ int main(int argc, char **argv){
 	char* dest2 = comms_malloc(11*sizeof(char));
 	comms_get(dest2, dest, 5, 0);
 	printf("Data fetched from memory externally %s\n", dest2);
-
+	
 	comms_finalize();
 	
 }

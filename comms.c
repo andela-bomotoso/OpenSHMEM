@@ -48,6 +48,7 @@ void comms_int_put(int* dest, int* source, size_t nelems, int pe){
 
         /*Copy the source into shmem buffer*/
         memcpy(shm_buffer[pe]+offset,   (void*)source,  sizeof(char)*nelems);
+	memcpy((void*)dest,  (void*)shm_buffer[pe]+offset, sizeof(char)*nelems);
 }
 
 /*fetch char buffer from the shared memory*/
@@ -65,7 +66,7 @@ void comms_get(char* dest, char* source, size_t nelems, int pe){
 void comms_int_get(int* dest, int* source, size_t nelems, int pe){
 
         int offset = (size_t)source - (size_t)mybuffer;
-
+	//memcpy(shm_buffer[pe]+offset,   (void*)source,  sizeof(char)*nelems);
         /*copy source into dest*/
         memcpy((void*)dest,  (void*)shm_buffer[pe]+offset, sizeof(char)*nelems);
 }
@@ -83,7 +84,7 @@ void comms_finalize()	{
 
 	/*destroy the shared memory*/
 	shmctl(shmid, IPC_RMID, NULL);
-
+	rte_finalize();
 }
 
 

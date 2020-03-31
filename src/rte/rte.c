@@ -6,7 +6,6 @@
  * *	Date:			3rd March 2020
  * ************************************************************************************/
 
-/*#include <iostream>*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>
@@ -36,7 +35,6 @@ int rte_n_pes()	{
 /*clean up all resources*/
 void rte_finalize(){
 	MPI_Finalize();
-
 }
 
 

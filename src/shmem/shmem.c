@@ -49,7 +49,7 @@
 	 *	to a data object on a specified PE
 	 **/
 	void shmem_int_put(int *dest, const int *source, size_t nelems, int pe){
-		comms_put(dest, source, nelems, pe);
+		comms_int_put(dest, source, nelems, pe);
 
 	}
 
@@ -58,7 +58,7 @@
      *  Copies data from a specified PE
      **/
     	void shmem_int_get(int *dest, const int *source, size_t nelems, int pe){
-
+		 comms_int_get(dest, source, nelems, pe);
 	}
 
 

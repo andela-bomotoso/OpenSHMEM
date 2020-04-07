@@ -13,11 +13,45 @@
 #include <stdlib.h>
 #include <string.h>
 
+
 void** shm_buffer;
 void* buffer_head;
 int shmid;
-
 void* mybuffer;
+
+
+struct ThreadData {
+    pthread_t thread_id;
+    int* dest;
+    int* source;
+    int  pe;
+    int  nelems;
+};
+
+void *memcpy_put(void *arguments){
+	struct ThreadData *data = (struct ThreadData*) arguments;
+	int* dest =  data -> dest;
+	int* source = data -> source;
+	int pe = data -> pe;
+	int nelems = data -> nelems;
+	shm_buffer[pe] = mybuffer = shmat(shmid, (void**)0,0);
+        int offset = (size_t)dest - (size_t)mybuffer;
+        memcpy(shm_buffer[pe]+offset,  (void*)source,  sizeof(int)*nelems);
+}
+
+
+void *memcpy_get(void *arguments){
+        struct ThreadData *data = (struct ThreadData*) arguments;
+        int* dest =  data -> dest;
+        int* source = data -> source;
+        int pe = data -> pe;
+        int nelems = data -> nelems;
+        shm_buffer[pe] = mybuffer = shmat(shmid, (void**)0,0);
+        int offset = (size_t)source - (size_t)mybuffer;
+        /*copy source into dest*/
+        memcpy((void*)dest,  (void*)shm_buffer[pe]+offset, sizeof(int)*nelems);
+}
+
 void comms_init()	{
 
 	rte_init();
@@ -63,12 +97,40 @@ void comms_get(char* dest, char* source, size_t nelems, int pe){
         printf("Data read from memory internally: %s\n", dest);
 }
 
-/*fetch char buffer from the shared memory*/
+/*fetch int buffer from the shared memory*/
 void comms_int_get(int* dest, int* source, size_t nelems, int pe){
 	shm_buffer[pe] = mybuffer = shmat(shmid, (void**)0,0);
         int offset = (size_t)source - (size_t)mybuffer;
         /*copy source into dest*/
         memcpy((void*)dest,  (void*)shm_buffer[pe]+offset, sizeof(int)*nelems);
+}
+
+
+ /*put int buffer into shared memory asynchronously*/    
+void comms_int_put_nbi(int *dest, const int *source, size_t nelems, int pe){
+    struct ThreadData data;
+    pthread_t thread_id; 
+    data.thread_id = thread_id;
+    data.dest = dest;
+    data.source = source;
+    data.nelems = nelems;
+    data.pe = pe;
+    pthread_create(&thread_id, NULL, memcpy_put, (void*)&data); 
+    pthread_detach(thread_id, NULL); 
+}
+
+
+ /*fetch int buffer from the shared memory asynchronously*/
+void comms_int_get_nbi(int *dest, const int *source, size_t nelems, int pe){
+	  struct ThreadData data;
+    pthread_t thread_id;
+    data.thread_id = thread_id;
+    data.dest = dest;
+    data.source = source;
+    data.nelems = nelems;
+    data.pe = pe;
+    pthread_create(&thread_id, NULL, memcpy_get, (void*)&data);
+    pthread_detach(thread_id, NULL);
 }
 
 void* comms_malloc(size_t bytes){

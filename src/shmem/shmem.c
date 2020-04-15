@@ -66,9 +66,8 @@
 	 *	The nonblocking put routines provide a method for copying data from a contiguous local data 
 	 *	object to a data object on a specified PE.
      **/
-    void shmem_put_nbi(int *dest, const int *source, size_t nelems, int pe){
-
-
+    void shmem_int_put_nbi(int *dest, const int *source, size_t nelems, int pe){
+		comms_int_put_nbi(dest, source, nelems, pe);
     }
 
 
@@ -76,8 +75,8 @@
      *  The nonblocking get routines provide a method for copying data from a contiguous remote 
 	 *	data object on the specified PE to the local data object.
      **/
-    void shmem_get_nbi(int *dest, const int *source, size_t nelems, int pe){
-
+    void shmem_int_get_nbi(int *dest, const int *source, size_t nelems, int pe){
+		comms_int_get_nbi(dest, source, nelems, pe);
 
     }
 
@@ -86,7 +85,7 @@
      *  object to a data object on a specified PE.
      **/
     void shmem_putmem(void *dest, const void *source, size_t nelems, int pe){
-
+		comms_putmem(dest, source, nelems, pe);	
     }
 
 
@@ -95,9 +94,7 @@
      *  data object on the specified PE to the local data object.
      **/
     void shmem_getmem(void *dest, const void *source, size_t nelems, int pe){
-
-
-
+		comms_getmem(dest, source, nelems, pe);
     }
 
 

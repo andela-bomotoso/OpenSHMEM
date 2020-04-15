@@ -66,16 +66,7 @@ void comms_init()	{
         shm_buffer[pe] = mybuffer = shmat(shmid, (void**)0,0);
 	buffer_head = mybuffer;
 }
-/*put char buffer into the shared memory*/
-void comms_put(char* dest, char* source, size_t nelems, int pe){
-	shm_buffer[pe] = mybuffer = shmat(shmid, (void**)0,0);	
-	int offset = (size_t)dest - (size_t)mybuffer;
 
-	/*Copy the source into shmem buffer*/
-	memcpy(shm_buffer[pe]+offset,   (void*)source,  sizeof(char)*nelems);
-		
-	printf("Data written in memory internally: %s\n", dest);
-}
 
 /*put int buffer into shared memory*/
 void comms_int_put(int* dest, int* source, size_t nelems, int pe){
@@ -84,17 +75,6 @@ void comms_int_put(int* dest, int* source, size_t nelems, int pe){
 
         /*Copy the source into shmem buffer*/
         memcpy(shm_buffer[pe]+offset,   (void*)source,  sizeof(int)*nelems);
-}
-
-/*fetch char buffer from the shared memory*/
-void comms_get(char* dest, char* source, size_t nelems, int pe){
-	shm_buffer[pe] = mybuffer = shmat(shmid, (void**)0,0);
-	int offset = (size_t)source - (size_t)mybuffer;
-	
-	/*copy source into dest*/
-	memcpy((void*)dest,  (void*)shm_buffer[pe]+offset, sizeof(char)*nelems);
-	
-        printf("Data read from memory internally: %s\n", dest);
 }
 
 /*fetch int buffer from the shared memory*/
@@ -131,6 +111,21 @@ void comms_int_get_nbi(int *dest, const int *source, size_t nelems, int pe){
     data.pe = pe;
     pthread_create(&thread_id, NULL, memcpy_get, (void*)&data);
     pthread_detach(thread_id, NULL);
+}
+
+void comms_putmem(void *dest, const void *source, size_t nelems, int pe){
+	shm_buffer[pe] = mybuffer = shmat(shmid, (void**)0,0);
+        int offset = (size_t)dest - (size_t)mybuffer;
+
+        /*Copy the source memory location into shmem buffer*/
+        memcpy((void*)shm_buffer[pe]+offset,  source,  sizeof(int)*nelems);
+}
+
+void comms_getmem(void *dest, const void *source, size_t nelems, int pe){
+        shm_buffer[pe] = mybuffer = shmat(shmid, (void**)0,0);
+        int offset = (size_t)source - (size_t)mybuffer;
+        /*copy source into dest*/
+        memcpy(dest,  (void*)shm_buffer[pe]+offset, sizeof(int)*nelems);
 }
 
 void* comms_malloc(size_t bytes){

@@ -18,7 +18,8 @@ void** shm_buffer;
 void* buffer_head;
 int shmid;
 void* mybuffer;
-
+int me;
+int* pSync;
 
 struct ThreadData {
     pthread_t thread_id;
@@ -37,6 +38,7 @@ void *memcpy_put(void *arguments){
 	shm_buffer[pe] = mybuffer = shmat(shmid, (void**)0,0);
         int offset = (size_t)dest - (size_t)mybuffer;
         memcpy(shm_buffer[pe]+offset,  (void*)source,  sizeof(int)*nelems);
+	pSync[me] = 1;
 }
 
 
@@ -50,44 +52,55 @@ void *memcpy_get(void *arguments){
         int offset = (size_t)source - (size_t)mybuffer;
         /*copy source into dest*/
         memcpy((void*)dest,  (void*)shm_buffer[pe]+offset, sizeof(int)*nelems);
+	pSync[me] = 1;
 }
 
 void comms_init()	{
 
 	rte_init();
-        int pe = rte_my_pe();
+        me = rte_my_pe();
         int npes = rte_n_pes();
+	pSync = malloc(npes*sizeof(int*));
+	int i = 0;
+	/*initialize pSync*/
+	for (i = 0; i < npes; i++)
+		pSync[me] = 0;
 	shm_buffer = malloc(npes*sizeof(void*));
 	/*ftok to generate unique key*/
-        key_t key = ftok("shmfile",pe);
+        key_t key = ftok("shmfile",me);
         /*shmget returns an identifier in shmid*/
         shmid = shmget(key, 1024, 0666|IPC_CREAT);
 	 /*shmat to attach shared memory*/
-        shm_buffer[pe] = mybuffer = shmat(shmid, (void**)0,0);
+        shm_buffer[me] = mybuffer = shmat(shmid, (void**)0,0);
 	buffer_head = mybuffer;
 }
 
 
 /*put int buffer into shared memory*/
 void comms_int_put(int* dest, int* source, size_t nelems, int pe){
+	pSync[me] = 0;
 	shm_buffer[pe] = mybuffer = shmat(shmid, (void**)0,0);
         int offset = (size_t)dest - (size_t)mybuffer;
 
         /*Copy the source into shmem buffer*/
         memcpy(shm_buffer[pe]+offset,   (void*)source,  sizeof(int)*nelems);
+	pSync[me] = 1;
 }
 
 /*fetch int buffer from the shared memory*/
 void comms_int_get(int* dest, int* source, size_t nelems, int pe){
+	pSync[me] = 0;
 	shm_buffer[pe] = mybuffer = shmat(shmid, (void**)0,0);
         int offset = (size_t)source - (size_t)mybuffer;
         /*copy source into dest*/
         memcpy((void*)dest,  (void*)shm_buffer[pe]+offset, sizeof(int)*nelems);
+	pSync[me] = 1;
 }
 
 
  /*put int buffer into shared memory asynchronously*/    
 void comms_int_put_nbi(int *dest, const int *source, size_t nelems, int pe){
+    pSync[me] = 0;
     struct ThreadData data;
     pthread_t thread_id; 
     data.thread_id = thread_id;
@@ -97,12 +110,14 @@ void comms_int_put_nbi(int *dest, const int *source, size_t nelems, int pe){
     data.pe = pe;
     pthread_create(&thread_id, NULL, memcpy_put, (void*)&data); 
     pthread_detach(thread_id, NULL); 
+    pSync[me] = 1;
 }
 
 
  /*fetch int buffer from the shared memory asynchronously*/
 void comms_int_get_nbi(int *dest, const int *source, size_t nelems, int pe){
-	  struct ThreadData data;
+    pSync[me] = 0;
+    struct ThreadData data;
     pthread_t thread_id;
     data.thread_id = thread_id;
     data.dest = dest;
@@ -114,18 +129,22 @@ void comms_int_get_nbi(int *dest, const int *source, size_t nelems, int pe){
 }
 
 void comms_putmem(void *dest, const void *source, size_t nelems, int pe){
+	pSync[me] = 0;
 	shm_buffer[pe] = mybuffer = shmat(shmid, (void**)0,0);
         int offset = (size_t)dest - (size_t)mybuffer;
 
         /*Copy the source memory location into shmem buffer*/
         memcpy((void*)shm_buffer[pe]+offset,  source,  sizeof(int)*nelems);
+	pSync[me] = 1;
 }
 
 void comms_getmem(void *dest, const void *source, size_t nelems, int pe){
+	pSync[me] = 0;
         shm_buffer[pe] = mybuffer = shmat(shmid, (void**)0,0);
         int offset = (size_t)source - (size_t)mybuffer;
         /*copy source into dest*/
         memcpy(dest,  (void*)shm_buffer[pe]+offset, sizeof(int)*nelems);
+	pSync[me] = 1;
 }
 
 void* comms_malloc(size_t bytes){

@@ -12,15 +12,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <stdbool.h>
 
 void** shm_buffer;
 void* buffer_head;
 int shmid;
 void* mybuffer;
 int me;
+int npes;
 int* pSync;
-
+void* comms_malloc();
 struct ThreadData {
     pthread_t thread_id;
     int* dest;
@@ -59,12 +60,9 @@ void comms_init()	{
 
 	rte_init();
         me = rte_my_pe();
-        int npes = rte_n_pes();
+        npes = rte_n_pes();
 	pSync = malloc(npes*sizeof(int*));
 	int i = 0;
-	/*initialize pSync*/
-	for (i = 0; i < npes; i++)
-		pSync[me] = 0;
 	shm_buffer = malloc(npes*sizeof(void*));
 	/*ftok to generate unique key*/
         key_t key = ftok("shmfile",me);
@@ -147,8 +145,32 @@ void comms_getmem(void *dest, const void *source, size_t nelems, int pe){
 	pSync[me] = 1;
 }
 
+bool isAllPE(int* pSync, int npes){
+        int i = 0;
+        for (i = 0; i < npes; i++){
+                if(pSync[i] == 0)
+                        return false;
+        }
+        return true;
+
+}
+
+void barrier_all(){
+          /*This PE updates the psync value on PE 0*/
+          comms_int_put( pSync[me], pSync[me], 1, 0);
+          /*check that other PEs have a value of pSync 1 on PE 0*/
+          int i = 0;
+          while(true){
+                for (i = 0; i < npes; i++){
+                    comms_int_get(pSync[i],pSync[i], 1, 0);
+                }
+        if(isAllPE(pSync, npes))
+                break;
+        }
+}
+
 void* comms_malloc(size_t bytes){
-	
+	//barrier_all();	
 	void* addr = buffer_head;
 	buffer_head += bytes;
 	return addr;

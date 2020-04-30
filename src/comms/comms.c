@@ -57,11 +57,10 @@ void *memcpy_get(void *arguments){
 }
 
 void comms_init()	{
-
 	rte_init();
         me = rte_my_pe();
         npes = rte_n_pes();
-	pSync = malloc(npes*sizeof(int*));
+	pSync = comms_malloc(npes*sizeof(int*));
 	int i = 0;
 	shm_buffer = malloc(npes*sizeof(void*));
 	/*ftok to generate unique key*/
@@ -76,29 +75,24 @@ void comms_init()	{
 
 /*put int buffer into shared memory*/
 void comms_int_put(int* dest, int* source, size_t nelems, int pe){
-	pSync[me] = 0;
 	shm_buffer[pe] = mybuffer = shmat(shmid, (void**)0,0);
         int offset = (size_t)dest - (size_t)mybuffer;
 
         /*Copy the source into shmem buffer*/
         memcpy(shm_buffer[pe]+offset,   (void*)source,  sizeof(int)*nelems);
-	pSync[me] = 1;
 }
 
 /*fetch int buffer from the shared memory*/
 void comms_int_get(int* dest, int* source, size_t nelems, int pe){
-	pSync[me] = 0;
 	shm_buffer[pe] = mybuffer = shmat(shmid, (void**)0,0);
         int offset = (size_t)source - (size_t)mybuffer;
         /*copy source into dest*/
         memcpy((void*)dest,  (void*)shm_buffer[pe]+offset, sizeof(int)*nelems);
-	pSync[me] = 1;
 }
 
 
  /*put int buffer into shared memory asynchronously*/    
 void comms_int_put_nbi(int *dest, const int *source, size_t nelems, int pe){
-    pSync[me] = 0;
     struct ThreadData data;
     pthread_t thread_id; 
     data.thread_id = thread_id;
@@ -108,7 +102,6 @@ void comms_int_put_nbi(int *dest, const int *source, size_t nelems, int pe){
     data.pe = pe;
     pthread_create(&thread_id, NULL, memcpy_put, (void*)&data); 
     pthread_detach(thread_id, NULL); 
-    pSync[me] = 1;
 }
 
 
@@ -127,22 +120,18 @@ void comms_int_get_nbi(int *dest, const int *source, size_t nelems, int pe){
 }
 
 void comms_putmem(void *dest, const void *source, size_t nelems, int pe){
-	pSync[me] = 0;
 	shm_buffer[pe] = mybuffer = shmat(shmid, (void**)0,0);
         int offset = (size_t)dest - (size_t)mybuffer;
 
         /*Copy the source memory location into shmem buffer*/
         memcpy((void*)shm_buffer[pe]+offset,  source,  sizeof(int)*nelems);
-	pSync[me] = 1;
 }
 
 void comms_getmem(void *dest, const void *source, size_t nelems, int pe){
-	pSync[me] = 0;
         shm_buffer[pe] = mybuffer = shmat(shmid, (void**)0,0);
         int offset = (size_t)source - (size_t)mybuffer;
         /*copy source into dest*/
         memcpy(dest,  (void*)shm_buffer[pe]+offset, sizeof(int)*nelems);
-	pSync[me] = 1;
 }
 
 bool isAllPE(int* pSync, int npes){
@@ -152,13 +141,36 @@ bool isAllPE(int* pSync, int npes){
                         return false;
         }
         return true;
+}
 
+void barrier_PE0(){
+	int i = 0;
+	for(i = 1; i < npes; i++){
+		while(pSync[i] == 0){
+
+		}
+		pSync[i] = 0;
+	}
+	int pe = 0;
+	for(pe = 0; i < npes; i++){
+		pSync[pe] = 1;
+	}
+}
+
+void barrier_OtherPE(){
+	pSync[me] = 0;
+	comms_int_put( pSync[me], pSync[me], 1, 0);
+	while(pSync[me] == 0){
+
+	}
+	pSync[me] = 0;
 }
 
 void barrier_all(){
-          /*This PE updates the psync value on PE 0*/
+          //This PE updates the psync value on PE 0
+	  pSync[me] = 1;
           comms_int_put( pSync[me], pSync[me], 1, 0);
-          /*check that other PEs have a value of pSync 1 on PE 0*/
+          //check that other PEs have a value of pSync 1 on PE 0
           int i = 0;
           while(true){
                 for (i = 0; i < npes; i++){
@@ -168,6 +180,7 @@ void barrier_all(){
                 break;
         }
 }
+
 
 void* comms_malloc(size_t bytes){
 	//barrier_all();	
